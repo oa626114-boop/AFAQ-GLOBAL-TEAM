@@ -1,29 +1,24 @@
-<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>AFAQ GLOBAL TEAM — Admin</title>
+<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>AFAQ GLOBAL TEAM — لوحة المالك</title>
 <style>
-body{margin:0;background:#174b55;color:#f7edcf;font-family:Arial;padding:20px}main{max-width:950px;margin:auto}.card{background:#20545d;border:1px solid #d9b45b;padding:18px;border-radius:14px;margin:14px 0}h1,h2{color:#d9b45b}input,button{padding:12px;border-radius:8px;border:1px solid #d9b45b}input{background:#103942;color:white;width:min(100%,420px)}button{background:#d9b45b;color:#193d42;cursor:pointer;margin:4px}pre{white-space:pre-wrap;overflow-wrap:anywhere}
-</style></head><body><main><h1>AFAQ GLOBAL TEAM — لوحة المالك</h1><div class="card"><p>هذه الصفحة للمالك فقط. لا تشارك رمز الإدارة مع أي عضو.</p><input id="token" type="password" placeholder="رمز المالك السري"><button onclick="loadApplicants()">عرض الطلبات</button><div id="status"></div></div><div id="items"></div></main>
+:root{--navy:#174b55;--deep:#103942;--gold:#d9b45b;--txt:#f7edcf}*{box-sizing:border-box}
+body{margin:0;background:linear-gradient(145deg,var(--navy),var(--deep));color:var(--txt);font-family:Arial;padding:18px}
+main{max-width:950px;margin:auto}.card{background:#20545d;border:1px solid #d9b45b;padding:18px;border-radius:14px;margin:14px 0}
+h1,h2{color:var(--gold)}input,button{padding:12px;border-radius:8px;border:1px solid #d9b45b}
+input{background:#103942;color:white;width:100%;max-width:520px}button{background:var(--gold);color:#193d42;cursor:pointer;margin:4px;font-weight:bold}
+pre{white-space:pre-wrap;overflow-wrap:anywhere}.muted{opacity:.85;font-size:13px}.actions{display:flex;gap:8px;flex-wrap:wrap}
+</style></head><body><main><h1>AFAQ GLOBAL TEAM</h1><section class="card"><h2>لوحة المالك — مراجعة طلبات العضوية</h2><p>هذه الصفحة مخصصة للمالك فقط. لا تشارك رمز الإدارة مع أي عضو.</p><label>رمز المالك السري</label><br><input id="token" type="password" autocomplete="current-password" placeholder="أدخل OWNER_ADMIN_TOKEN"><div class="actions"><button onclick="loadApplicants()">عرض الطلبات</button><button onclick="logout()">مسح الرمز</button></div><div id="status" class="muted"></div></section><div id="items"></div></main>
 <script src="config.js"></script><script>
-async function api(path,method='GET'){
- const response=await fetch(window.AFAQ_CONFIG.API_BASE+path,{method,headers:{Authorization:'Bearer '+document.getElementById('token').value}});
- const data=await response.json();if(!response.ok)throw Error(data.error||'حدث خطأ');return data;
-}
-async function loadApplicants(){
- const status=document.getElementById('status'),box=document.getElementById('items');status.textContent='جارٍ التحميل';box.innerHTML='';
- try{
-  const data=await api('/admin/applicants');status.textContent='عدد الطلبات: '+data.applicants.length;
-  data.applicants.forEach(applicant=>{
-   const card=document.createElement('div');card.className='card';
-   const pre=document.createElement('pre');pre.textContent=JSON.stringify(applicant,null,2);card.append(pre);
-   if(applicant.status==='pending'){
-    const approve=document.createElement('button');approve.textContent='موافقة وإصدار رقم عضوية';approve.onclick=()=>review(applicant.id,'approve');
-    const reject=document.createElement('button');reject.textContent='رفض';reject.onclick=()=>review(applicant.id,'reject');card.append(approve,reject);
-   }
-   box.append(card);
-  });
- }catch(error){status.textContent=error.message;}
-}
-async function review(id,action){
- try{const result=await api('/admin/applicants/'+id+'/'+action,'POST');alert(result.membership_id?'تمت الموافقة. رقم العضوية: '+result.membership_id:'تم تحديث الطلب');loadApplicants();}
- catch(error){alert(error.message);}
-}
+const token=()=>document.getElementById('token').value;
+async function api(path,method='GET'){const r=await fetch(window.AFAQ_CONFIG.API_BASE+path,{method,headers:{Authorization:'Bearer '+token()}});const d=await r.json();if(!r.ok)throw Error(d.error||'حدث خطأ');return d;}
+function logout(){document.getElementById('token').value='';document.getElementById('items').innerHTML='';document.getElementById('status').textContent='تم مسح الرمز من هذه الصفحة.';}
+async function loadApplicants(){const s=document.getElementById('status'),box=document.getElementById('items');s.textContent='جارٍ تحميل الطلبات...';box.innerHTML='';
+try{const d=await api('/admin/applicants');s.textContent='إجمالي الطلبات: '+d.applicants.length;
+d.applicants.forEach(a=>{const c=document.createElement('section');c.className='card';const h=document.createElement('h2');h.textContent=a.full_name+' — '+a.status;c.append(h);
+const p=document.createElement('pre');p.textContent=JSON.stringify(a,null,2);c.append(p);
+if(a.status==='pending'){const row=document.createElement('div');row.className='actions';
+const yes=document.createElement('button');yes.textContent='موافقة وإصدار رقم عضوية';yes.onclick=()=>review(a.id,'approve');
+const no=document.createElement('button');no.textContent='رفض الطلب';no.onclick=()=>review(a.id,'reject');row.append(yes,no);c.append(row);}
+box.append(c);});}catch(e){s.textContent=e.message;}}
+async function review(id,action){if(!confirm(action==='approve'?'تأكيد الموافقة وإصدار رقم عضوية؟':'تأكيد رفض الطلب؟'))return;
+try{const d=await api('/admin/applicants/'+id+'/'+action,'POST');alert(d.membership_id?'تمت الموافقة. رقم العضوية: '+d.membership_id:'تم رفض الطلب.');loadApplicants();}catch(e){alert(e.message);}}
 </script></body></html>
