@@ -1,0 +1,29 @@
+<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>AFAQ GLOBAL TEAM — Admin</title>
+<style>
+body{margin:0;background:#174b55;color:#f7edcf;font-family:Arial;padding:20px}main{max-width:950px;margin:auto}.card{background:#20545d;border:1px solid #d9b45b;padding:18px;border-radius:14px;margin:14px 0}h1,h2{color:#d9b45b}input,button{padding:12px;border-radius:8px;border:1px solid #d9b45b}input{background:#103942;color:white;width:min(100%,420px)}button{background:#d9b45b;color:#193d42;cursor:pointer;margin:4px}pre{white-space:pre-wrap;overflow-wrap:anywhere}
+</style></head><body><main><h1>AFAQ GLOBAL TEAM — لوحة المالك</h1><div class="card"><p>هذه الصفحة للمالك فقط. لا تشارك رمز الإدارة مع أي عضو.</p><input id="token" type="password" placeholder="رمز المالك السري"><button onclick="loadApplicants()">عرض الطلبات</button><div id="status"></div></div><div id="items"></div></main>
+<script src="config.js"></script><script>
+async function api(path,method='GET'){
+ const response=await fetch(window.AFAQ_CONFIG.API_BASE+path,{method,headers:{Authorization:'Bearer '+document.getElementById('token').value}});
+ const data=await response.json();if(!response.ok)throw Error(data.error||'حدث خطأ');return data;
+}
+async function loadApplicants(){
+ const status=document.getElementById('status'),box=document.getElementById('items');status.textContent='جارٍ التحميل';box.innerHTML='';
+ try{
+  const data=await api('/admin/applicants');status.textContent='عدد الطلبات: '+data.applicants.length;
+  data.applicants.forEach(applicant=>{
+   const card=document.createElement('div');card.className='card';
+   const pre=document.createElement('pre');pre.textContent=JSON.stringify(applicant,null,2);card.append(pre);
+   if(applicant.status==='pending'){
+    const approve=document.createElement('button');approve.textContent='موافقة وإصدار رقم عضوية';approve.onclick=()=>review(applicant.id,'approve');
+    const reject=document.createElement('button');reject.textContent='رفض';reject.onclick=()=>review(applicant.id,'reject');card.append(approve,reject);
+   }
+   box.append(card);
+  });
+ }catch(error){status.textContent=error.message;}
+}
+async function review(id,action){
+ try{const result=await api('/admin/applicants/'+id+'/'+action,'POST');alert(result.membership_id?'تمت الموافقة. رقم العضوية: '+result.membership_id:'تم تحديث الطلب');loadApplicants();}
+ catch(error){alert(error.message);}
+}
+</script></body></html>
